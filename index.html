@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="WPA Reminder">
+<meta name="theme-color" content="#0f0f0f">
+<title>WPA Bill Reminder</title>
+<style>
+  :root {
+    --bg: #0f0f0f; --bg2: #1a1a1a; --bg3: #242424; --border: #2e2e2e;
+    --text: #f0f0f0; --text2: #999; --text3: #666;
+    --water: #378ADD; --water-bg: #0c1f35;
+    --power: #EF9F27; --power-bg: #2d1f00;
+    --other: #639922; --other-bg: #1a2a08;
+    --danger: #E24B4A; --danger-bg: #2d0e0e;
+    --success: #639922; --success-bg: #1a2a08;
+    --warn: #EF9F27; --warn-bg: #2d1f00;
+    --radius: 12px; --radius-sm: 8px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; overflow: hidden; }
+  body { display: flex; flex-direction: column; }
+  .header { padding: 52px 20px 16px; background: var(--bg); border-bottom: 0.5px solid var(--border); flex-shrink: 0; }
+  .header-row { display: flex; align-items: center; gap: 12px; }
+  .app-icon { width: 40px; height: 40px; background: var(--text); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .app-icon svg { width: 22px; height: 22px; fill: var(--bg); }
+  .app-title { font-size: 18px; font-weight: 600; color: var(--text); }
+  .app-sub { font-size: 12px; color: var(--text3); margin-top: 1px; }
+  .tg-pill { margin-left: auto; display: flex; align-items: center; gap: 6px; background: var(--bg3); border: 0.5px solid var(--border); border-radius: 20px; padding: 5px 10px; font-size: 12px; color: var(--text2); flex-shrink: 0; }
+  .tg-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text3); transition: background 0.3s; }
+  .tg-dot.on { background: var(--success); }
+  .content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 16px 16px 100px; }
+  .nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg2); border-top: 0.5px solid var(--border); display: flex; padding-bottom: env(safe-area-inset-bottom, 0); z-index: 100; }
+  .nav-btn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 0; background: none; border: none; color: var(--text3); font-size: 10px; cursor: pointer; transition: color 0.15s; }
+  .nav-btn svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .nav-btn.active { color: var(--text); }
+  .metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+  .metric { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px; }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .metric-value { font-size: 26px; font-weight: 600; color: var(--text); }
+  .metric-value.danger { color: var(--danger); }
+  .metric-value.success { color: var(--success); }
+  .section-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 10px; }
+  .bill-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+  .bill-top { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 500; padding: 3px 9px; border-radius: 20px; }
+  .badge-water { background: var(--water-bg); color: var(--water); }
+  .badge-power { background: var(--power-bg); color: var(--power); }
+  .badge-other { background: var(--other-bg); color: var(--other); }
+  .badge-overdue { background: var(--danger-bg); color: var(--danger); }
+  .badge-upcoming { background: var(--warn-bg); color: var(--warn); }
+  .badge-paid { background: var(--success-bg); color: var(--success); }
+  .badge-pending { background: var(--bg3); color: var(--text3); }
+  .bill-actions { margin-left: auto; display: flex; gap: 6px; }
+  .icon-btn { background: var(--bg3); border: 0.5px solid var(--border); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: var(--text2); }
+  .icon-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .icon-btn.send { background: #1a2a08; border-color: #2a4010; color: var(--success); }
+  .bill-main { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+  .bill-name { font-size: 15px; font-weight: 500; color: var(--text); }
+  .bill-meta { font-size: 12px; color: var(--text3); margin-top: 3px; }
+  .bill-amount { font-size: 18px; font-weight: 600; color: var(--text); white-space: nowrap; }
+  .bill-amount span { font-size: 11px; color: var(--text3); font-weight: 400; }
+  .progress-bar { height: 3px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-bottom: 6px; }
+  .progress-fill { height: 100%; border-radius: 2px; transition: width 0.4s; }
+  .days-label { font-size: 12px; color: var(--text3); }
+  .empty { text-align: center; padding: 48px 20px; }
+  .empty svg { width: 48px; height: 48px; stroke: var(--text3); fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 12px; }
+  .empty p { font-size: 14px; color: var(--text3); }
+  .form-group { margin-bottom: 14px; }
+  .form-label { font-size: 12px; color: var(--text3); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  input, select { width: 100%; background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 15px; padding: 12px 14px; appearance: none; -webkit-appearance: none; outline: none; font-family: inherit; }
+  input:focus, select:focus { border-color: #555; }
+  input::placeholder { color: var(--text3); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .btn-primary { width: 100%; background: var(--text); color: var(--bg); border: none; border-radius: var(--radius-sm); padding: 14px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; margin-top: 4px; }
+  .btn-primary:active { opacity: 0.8; }
+  .setup-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px; margin-bottom: 14px; }
+  .setup-hint { font-size: 12px; color: var(--text3); margin-top: 6px; }
+  .setup-hint code, .info-box code { background: var(--bg3); padding: 1px 5px; border-radius: 4px; color: var(--text2); font-size: 11px; }
+  .info-box { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 14px; }
+  .info-box ol { padding-left: 16px; }
+  .info-box li { font-size: 13px; color: var(--text2); line-height: 2; }
+  .connected-bar { background: var(--success-bg); border: 0.5px solid #2a4010; border-radius: var(--radius-sm); padding: 10px 14px; display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--success); margin-bottom: 14px; }
+  .log-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .log-entry { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+  .log-entry:last-child { border-bottom: none; }
+  .log-time { font-size: 11px; color: var(--text3); min-width: 52px; }
+  .log-msg { color: var(--text2); flex: 1; }
+  .log-ok.ok { color: var(--success); font-size: 11px; font-weight: 500; }
+  .log-ok.fail { color: var(--danger); font-size: 11px; font-weight: 500; }
+  .toast { position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--bg3); border: 0.5px solid var(--border); color: var(--text); font-size: 13px; padding: 10px 18px; border-radius: 20px; opacity: 0; transition: all 0.25s; pointer-events: none; white-space: nowrap; z-index: 999; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.success { background: var(--success-bg); border-color: #2a4010; color: var(--success); }
+  .toast.error { background: var(--danger-bg); border-color: #4d1010; color: var(--danger); }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="header-row">
+    <div class="app-icon">
+      <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+    </div>
+    <div>
+      <div class="app-title">WPA Bill Reminder</div>
+      <div class="app-sub">@ShewaexpressBot</div>
+    </div>
+    <div class="tg-pill">
+      <div class="tg-dot" id="tg-dot"></div>
+      <span id="tg-label">Connecting…</span>
+    </div>
+  </div>
+</div>
+<div class="content" id="content"></div>
+<nav class="nav">
+  <button class="nav-btn active" id="nav-dashboard" onclick="showTab('dashboard')">
+    <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </button>
+  <button class="nav-btn" id="nav-add" onclick="showTab('add')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Add bill
+  </button>
+  <button class="nav-btn" id="nav-setup" onclick="showTab('setup')">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    Setup
+  </button>
+  <button class="nav-btn" id="nav-log" onclick="showTab('log')">
+    <svg viewBox="0 0 24 24"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg>
+    Alerts
+  </button>
+</nav>
+<div class="toast" id="toast"></div>
+<script>
+const BOT_TOKEN='8751162098:AAHAvRV1ZVsquE26q0S3aRF1Nq17iB02HhQ';
+const CHAT_ID='390807865';
+let bills=JSON.parse(localStorage.getItem('wpa_bills')||'[]');
+let logs=JSON.parse(localStorage.getItem('wpa_logs')||'[]');
+let currentTab='dashboard';
+const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d;};
+const daysUntil=s=>Math.round((new Date(s).setHours(0,0,0,0)-today())/86400000);
+const fmtAmt=n=>parseFloat(n).toLocaleString('en-ET',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtDate=s=>new Date(s).toLocaleDateString('en-ET',{day:'numeric',month:'short',year:'numeric'});
+function statusOf(b){if(b.paid)return'paid';const d=daysUntil(b.due);if(d<0)return'overdue';if(d<=7)return'upcoming';return'pending';}
+function showToast(msg,type=''){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;clearTimeout(t._tid);t._tid=setTimeout(()=>t.className='toast',2800);}
+async function sendTelegram(text){try{const r=await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chat_id:CHAT_ID,text,parse_mode:'Markdown'})});return(await r.json()).ok;}catch(e){return false;}}
+async function sendNow(idx){const b=bills[idx];const d=daysUntil(b.due);const emoji=b.cat==='water'?'💧':b.cat==='power'?'⚡':'🧾';const dStr=d<0?`${Math.abs(d)} days *overdue*`:d===0?'*due TODAY*':`due in *${d} days*`;const msg=`${emoji} *WPA Bill Reminder*\n\n*${b.name}*\nAmount: *ETB ${fmtAmt(b.amount)}*\nDue: *${fmtDate(b.due)}*\nStatus: Bill is ${dStr}\n\n_Shewa Express Reminder_`;showToast('Sending…');const ok=await sendTelegram(msg);addLog(`Reminder for "${b.name}"`,ok);showToast(ok?'✓ Sent to Telegram':'✗ Send failed',ok?'success':'error');renderLog();}
+function addLog(msg,ok){logs.push({time:new Date().toLocaleTimeString('en-ET',{hour:'2-digit',minute:'2-digit'}),msg,ok});localStorage.setItem('wpa_logs',JSON.stringify(logs));}
+function saveBills(){localStorage.setItem('wpa_bills',JSON.stringify(bills));}
+function togglePaid(idx){bills[idx].paid=!bills[idx].paid;saveBills();renderDashboard();}
+function deleteBill(idx){if(!confirm(`Delete "${bills[idx].name}"?`))return;bills.splice(idx,1);saveBills();renderDashboard();}
+function renderDashboard(){const total=bills.reduce((a,b)=>a+(b.paid?0:parseFloat(b.amount)||0),0);const overdue=bills.filter(b=>statusOf(b)==='overdue').length;const paid=bills.filter(b=>b.paid).length;const sorted=[...bills].sort((a,b)=>new Date(a.due)-new Date(b.due));let html=`<div class="metrics"><div class="metric"><div class="metric-label">Unpaid (ETB)</div><div class="metric-value">${total.toLocaleString('en-ET',{maximumFractionDigits:0})}</div></div><div class="metric"><div class="metric-label">Total bills</div><div class="metric-value">${bills.length}</div></div><div class="metric"><div class="metric-label">Overdue</div><div class="metric-value ${overdue?'danger':''}">${overdue}</div></div><div class="metric"><div class="metric-label">Paid</div><div class="metric-value ${paid?'success':''}">${paid}</div></div></div><div class="section-label">Bills</div>`;if(!bills.length){html+=`<div class="empty"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg><p>No bills yet.<br>Tap Add bill to get started.</p></div>`;}else{sorted.forEach(b=>{const idx=bills.indexOf(b);const s=statusOf(b);const d=daysUntil(b.due);const dLabel=b.paid?'Paid ✓':d<0?`${Math.abs(d)}d overdue`:d===0?'Due today!':`${d} days left`;const pct=b.paid?100:Math.max(0,Math.min(100,100-d*6));const fillColor=s==='overdue'?'#E24B4A':s==='upcoming'?'#EF9F27':s==='paid'?'#639922':'#378ADD';const catBadge=b.cat==='water'?'<span class="badge badge-water">💧 Water</span>':b.cat==='power'?'<span class="badge badge-power">⚡ Power</span>':'<span class="badge badge-other">🧾 Other</span>';const stBadge=`<span class="badge badge-${s}">${{overdue:'Overdue',upcoming:'Due soon',paid:'Paid',pending:'Pending'}[s]}</span>`;html+=`<div class="bill-card"><div class="bill-top">${catBadge} ${stBadge}<div class="bill-actions"><button class="icon-btn send" onclick="sendNow(${idx})"><svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button><button class="icon-btn" onclick="togglePaid(${idx})"><svg viewBox="0 0 24 24">${b.paid?'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>':'<polyline points="20 6 9 17 4 12"/>'}</svg></button><button class="icon-btn" onclick="deleteBill(${idx})"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg></button></div></div><div class="bill-main"><div><div class="bill-name">${b.name}</div><div class="bill-meta">Due ${fmtDate(b.due)} · Remind ${b.remind}d before</div></div><div class="bill-amount"><span>ETB </span>${fmtAmt(b.amount)}</div></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${fillColor};"></div></div><div class="days-label">${dLabel}</div></div>`;});}document.getElementById('content').innerHTML=html;}
+function renderAdd(){document.getElementById('content').innerHTML=`<div class="section-label">New bill</div><div class="form-group"><label class="form-label">Bill name</label><input id="f-name" type="text" placeholder="e.g. Ethiopian Electric Power – May"></div><div class="form-row"><div class="form-group"><label class="form-label">Category</label><select id="f-cat"><option value="water">💧 Water (WPA)</option><option value="power">⚡ Power (EEP)</option><option value="any">🧾 Other</option></select></div><div class="form-group"><label class="form-label">Amount (ETB)</label><input id="f-amount" type="number" placeholder="0.00" min="0" step="0.01"></div></div><div class="form-row"><div class="form-group"><label class="form-label">Due date</label><input id="f-due" type="date"></div><div class="form-group"><label class="form-label">Remind (days before)</label><select id="f-remind"><option value="1">1 day</option><option value="3" selected>3 days</option><option value="7">7 days</option></select></div></div><button class="btn-primary" onclick="addBill()">Add bill & schedule reminder</button>`;}
+function addBill(){const name=document.getElementById('f-name').value.trim();const cat=document.getElementById('f-cat').value;const amount=document.getElementById('f-amount').value;const due=document.getElementById('f-due').value;const remind=document.getElementById('f-remind').value;if(!name||!amount||!due){showToast('Please fill all fields','error');return;}bills.push({name,cat,amount,due,remind,paid:false});saveBills();showToast('✓ Bill added!','success');showTab('dashboard');}
+function renderSetup(){const connected=document.getElementById('tg-dot').classList.contains('on');document.getElementById('content').innerHTML=`${connected?'<div class="connected-bar">✓ @ShewaexpressBot is connected</div>':''}<div class="section-label">Bot configuration</div><div class="setup-card"><div class="form-group"><label class="form-label">Bot token</label><input id="s-token" type="text" value="${BOT_TOKEN}"><div class="setup-hint">From <code>@BotFather</code></div></div><div class="form-group"><label class="form-label">Chat ID</label><input id="s-chatid" type="text" value="${CHAT_ID}"><div class="setup-hint">Message <code>@userinfobot</code> to find yours</div></div><button class="btn-primary" onclick="testBot()">Send test message</button></div><div class="section-label" style="margin-top:20px;">How to get a new bot</div><div class="info-box"><ol><li>Open Telegram → search <strong>@BotFather</strong></li><li>Send <code>/newbot</code> and follow steps</li><li>Copy the token and paste above</li><li>Message <strong>@userinfobot</strong> for your Chat ID</li><li>Tap Send test message to verify</li></ol></div>`;}
+async function testBot(){showToast('Sending test…');const ok=await sendTelegram('✅ *WPA Bill Reminder* — test message!\n\nYour @ShewaexpressBot is connected and ready.');addLog('Test message sent',ok);if(currentTab==='log')renderLog();showToast(ok?'✓ Test message sent!':'✗ Failed — check token & ID',ok?'success':'error');}
+function renderLog(){if(!logs.length){document.getElementById('content').innerHTML=`<div class="empty"><svg viewBox="0 0 24 24"><path d="M22 17H2a3 3 0 0 0 3-3V9a7 7 0 0 1 14 0v5a3 3 0 0 0 3 3zm-8.27 4a2 2 0 0 1-3.46 0"/></svg><p>No notifications sent yet.</p></div>`;return;}let html='<div class="log-card">';[...logs].reverse().forEach(l=>{html+=`<div class="log-entry"><span class="log-time">${l.time}</span><span class="log-msg">${l.msg}</span><span class="log-ok ${l.ok?'ok':'fail'}">${l.ok?'Sent':'Failed'}</span></div>`;});html+='</div>';document.getElementById('content').innerHTML=html;}
+function showTab(name){currentTab=name;document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('nav-'+name).classList.add('active');document.getElementById('content').scrollTop=0;if(name==='dashboard')renderDashboard();else if(name==='add')renderAdd();else if(name==='setup')renderSetup();else if(name==='log')renderLog();}
+setInterval(async()=>{for(const b of bills){if(b.paid)continue;const d=daysUntil(b.due);if(d===parseInt(b.remind)||d===0||d===-1){const key=`rem_${b.name}_${b.due}_${d}`;if(!localStorage.getItem(key)){localStorage.setItem(key,'1');const emoji=b.cat==='water'?'💧':b.cat==='power'?'⚡':'🧾';const dStr=d<0?`${Math.abs(d)} days *overdue*`:d===0?'*due TODAY*':`due in *${d} days*`;const ok=await sendTelegram(`${emoji} *Auto Reminder*\n\n*${b.name}*\nAmount: *ETB ${fmtAmt(b.amount)}*\nDue: *${fmtDate(b.due)}*\n${dStr}\n\n_Shewa Express Reminder_`);addLog(`Auto-reminder: "${b.name}"`,ok);if(currentTab==='log')renderLog();}}}},60000);
+async function init(){renderDashboard();const ok=await sendTelegram('👋 *WPA Bill Reminder* opened!\n\n@ShewaexpressBot is connected and monitoring your bills.');const dot=document.getElementById('tg-dot');const label=document.getElementById('tg-label');if(ok){dot.classList.add('on');label.textContent='Connected';}else{label.textContent='Offline';}}
+init();
+</script>
+</body>
+</html>
